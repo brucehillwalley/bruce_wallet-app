@@ -13,6 +13,8 @@ let harcamaListesi = [];
 const gelirinizTd = document.getElementById("geliriniz");
 const giderinizTd = document.getElementById("gideriniz");
 const kalanTd = document.getElementById("kalan");
+const kalanTh = document.getElementById("kalanTh");
+
 
 //?harcama formu
 const harcamaFormu = document.getElementById("harcama-formu");
@@ -27,38 +29,47 @@ const temizleBtn = document.querySelector("#temizle-btn");
 //?ekle formu
 
 ekleFormu.addEventListener("submit", (e) => {
-  e.preventDefault();
+    //? prevent yapmazsak form olduğu için değerleri submit yapar göndermeye çalışır formu sıfırlar hesaplamalarımızda kullanamayız
+    e.preventDefault(); // Prevent page refresh on form submit
 
-  gelirler += Number(gelirInput.value);
-
-  console.log(gelirler);
-  localStorage.setItem("gelirler", gelirler);
-  gelirinizTd.innerText = gelirler;
-  ekleFormu.reset();
+    gelirler += Number(gelirInput.value); // Add entered amount to total income
+   
+    // console.log(gelirler); // Log total income to console
+    localStorage.setItem("gelirler", gelirler); // Save total income to local storage
+    gelirinizTd.innerText = gelirler; // Update total income display on page
+    ekleFormu.reset(); // Reset form inputs
+    hesaplaVeGuncelle() // Re-calculate and update the result
 });
 
 window.addEventListener("load", () => {
   gelirler = Number(localStorage.getItem("gelirler")) || 0;
   //* || ilk trueyu arar null gelmesine karşı yaptık 0 olarak sayı döndürsün null döndürmesin
   gelirinizTd.innerText = gelirler;
-  tarihInput.valueAsDate = new Date();
+  tarihInput.valueAsDate = new Date(); //? girilen günün tarihi default olarak verilmiş oluyor
+  harcamaListesi=JSON.parse(localStorage.getItem("harcamalar")) || []
+  harcamaListesi.forEach(harcama => harcamayiDomaYaz(harcama));hesaplaVeGuncelle();
+
 });
 
 harcamaFormu.addEventListener("submit", (e) => {
   e.preventDefault(); //reload u engeller
   const yeniHarcama = {
     id: new Date().getTime(),
-    tarih: tarihInput.value,
+    // tarih: tarihInput.value, her bir nesne epoch tan uniq id alır
+    tarih:new Date(tarihInput.value).toLocaleDateString(),
+    //? tarih gösterimini yerel gösterime ayarladık
     alan: harcamaAlaniInput.value,
     miktar: miktarInput.value,
   };
   console.log(yeniHarcama);
+
   harcamaFormu.reset();
   tarihInput.valueAsDate = new Date();
 
   harcamaListesi.push(yeniHarcama);
   localStorage.setItem("harcamalar", JSON.stringify(harcamaListesi));
   harcamayiDomaYaz(yeniHarcama);
+ hesaplaVeGuncelle() 
 });
 
 //? harcamayı doma yaz
@@ -75,9 +86,13 @@ const harcamayiDomaYaz = ({ id, miktar, tarih, alan }) => {
 
   // </tr>
   // `
+  //? istenmeyen kod çalıştırılabilir
 
-  const tr = document.createElement("tr");
 
+  //? create element yöntemi ile DOM a ekleme
+  const tr = document.createElement("tr"); //? tr elementi oluşturur
+
+  //? tr elementinin ilk üç öğesi oluşturulur
   //? DRY DONT REPEAT YOURSELF!
   const appendTd = (content) => {
     const td = document.createElement("td");
@@ -95,9 +110,59 @@ const harcamayiDomaYaz = ({ id, miktar, tarih, alan }) => {
     return td;
   
   };
-
+//? td oluşturarak tr ye aşağıda fonksiyonları çağırarak ekledik
   tr.append(appendTd(tarih), appendTd(alan), appendTd(miktar),createLastTd());
 
 //   harcamaBody.append(tr)//?harcamayı sona ekler
   harcamaBody.prepend(tr)//?harcamayı öne ekler
 };
+
+const hesaplaVeGuncelle=()=>{
+// gelirinizTd.innerText=gelirler
+gelirinizTd.innerText=new Intl.NumberFormat().format(gelirler)
+const giderler = harcamaListesi.reduce((toplam,harcama)=>toplam+Number(harcama.miktar),0)
+
+// giderinizTd.innerText=giderler
+giderinizTd.innerText=new Intl.NumberFormat().format(giderler)//? gider toplamını ekrana yaz 1.000 formatında
+kalanTd.innerText=new Intl.NumberFormat().format(gelirler - giderler)
+
+const borclu=gelirler-giderler<0;
+
+//? eksiye geçilmesi durumunda kırmızı gözükecek
+//? text-danger classı eklenecek
+kalanTd.classList.toggle("text-danger", borclu)
+kalanTh.classList.toggle("text-danger", borclu)
+
+}
+
+harcamaBody.addEventListener("click", (e)=>{
+    console.log(e.target);
+
+    
+    if (e.target.classList.contains("fa-trash-can")) {
+        e.target.parentElement.parentElement.remove()
+
+    }
+//? silinen harcamanın id sini alır
+    const id = e.target.id
+    // console.log(id);
+    //? silinen harcamayı array den çıkarır
+    harcamaListesi = harcamaListesi.filter((harcama=>harcama.id!=id))
+//?yeni array i local e update eder
+    localStorage.setItem("harcamalar", JSON.stringify(harcamaListesi))
+  //?silindikten sonra yeniden hesapla
+    hesaplaVeGuncelle()
+
+})
+
+temizleBtn.addEventListener("click", ()=>{
+    if(confirm('Silmek istediğinize emin misiniz?')){
+        harcamaListesi = [] //tüm harcamaları listeden siler
+        gelirler = 0 //geliri sıfırlar
+        // localStorage.clear() // tüm local storage siler
+        localStorage.removeItem('gelirler') // sadece gelirleri siler
+        localStorage.removeItem('harcamalar') // sadece gelirleri siler
+        harcamaBody.innerHTML = "" // DOM dan harcamları siler
+        hesaplaVeGuncelle()
+    }
+})
