@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Pasta Grafiği Örneği</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <canvas id="myChart"></canvas>
+    <script>
+      // Verileri tanımlayın
+      var harcamaMiktarlari = [500, 750, 1000];
+      var harcamaAlanlari = ["Kira", "Fatura", "Kredi Kartı"];
+
+      // Pasta grafiği oluşturun
+      var ctx = document.getElementById("myChart").getContext("2d");
+      var myChart = new Chart(ctx, {
+        type: "pie",
+        data: {
+          labels: harcamaAlanlari,
+          datasets: [
+            {
+              label: "Harcama Miktarları",
+              data: harcamaMiktarlari,
+              backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
+              borderWidth: 1,
+            },
+          ],
+        },
+      });
+    </script>
+  </body>
+</html>
